@@ -1,0 +1,12 @@
+python-dotenv>=1.0.0
+linkup-sdk>=0.2.4
+mcp>=1.0.0
+llama-index>=0.10.0
+llama-index-llms-ollama>=0.1.0
+llama-index-embeddings-huggingface>=0.1.0
+llama-index-readers-file>=0.1.0
+pypdf>=3.0.0
+nest-asyncio>=1.5.0
+numpy>=1.24.0
+transformers>=4.30.0
+sentence-transformers>=2.2.0
