@@ -11,6 +11,8 @@ from llama_index.core.response_synthesizers import CompactAndRefine
 # Apply nest_asyncio to allow nested event loops
 nest_asyncio.apply()
 
+DEFAULT_OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "120"))
+
 class RetrievalResult(Event):
     """Event containing retrieved document nodes"""
     nodes: list[NodeWithScore]
@@ -24,9 +26,10 @@ class RAGWorkflow(Workflow):
         model_name = model_name or os.getenv("OLLAMA_MODEL", "gemma:2b")
         embedding_model = embedding_model or os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
         ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        request_timeout = DEFAULT_OLLAMA_TIMEOUT
         
         # Setup language model and embeddings
-        self.llm = Ollama(model=model_name, base_url=ollama_host)
+        self.llm = Ollama(model=model_name, base_url=ollama_host, request_timeout=request_timeout)
         self.embed_model = HuggingFaceEmbedding(model_name=embedding_model)
         
         # Apply settings globally

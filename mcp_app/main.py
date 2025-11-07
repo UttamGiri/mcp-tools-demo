@@ -1,6 +1,8 @@
 import asyncio
 import os
+import sys
 import json
+import traceback
 from pathlib import Path
 from dotenv import load_dotenv
 from mcp_app.document_workflow import RAGWorkflow
@@ -68,7 +70,6 @@ async def query_documents(query: str) -> str:
         workflow_result = await rag_workflow.ask(query)
         answer = workflow_result.result if hasattr(workflow_result, 'result') else workflow_result
 
-        # Build complete response from streaming chunks
         if hasattr(answer, 'async_response_gen'):
             full_answer = ""
             async for text_chunk in answer.async_response_gen():
@@ -83,7 +84,9 @@ async def query_documents(query: str) -> str:
             return "No answer generated. Please try a different query."
         return full_answer[:5000]
     except Exception as e:
-        return f"Error: {str(e)}"
+        traceback.print_exc(file=sys.stderr)
+        message = str(e) or "Unknown error"
+        return f"Error: {type(e).__name__}: {message}"
 
 if __name__ == "__main__":
     asyncio.run(rag_workflow.load_documents(str(DATA_DIR)))

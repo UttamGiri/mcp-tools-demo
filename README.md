@@ -37,6 +37,7 @@ docker build -t mcp-tools-demo .
    LINKUP_API_KEY=your_linkup_api_key_here
    OLLAMA_HOST=http://localhost:11434
    OLLAMA_MODEL=gemma:2b
+   OLLAMA_TIMEOUT=120
    EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
    DATA_DIR=./data
    ```
@@ -74,6 +75,9 @@ docker build -t mcp-tools-demo .
    
    # Pull required model (if not already installed):
    ollama pull gemma:2b
+
+   # Optional: Increase timeout if responses are long
+   export OLLAMA_TIMEOUT=120
    ```
 
 3. **Add documents to data directory:**
@@ -148,11 +152,11 @@ Available tools:
   - query_documents: Answer questions using RAG workflow...
 
 Example 1: Web Search
-Query: 'What is Python programming?'
+Query: 'What is Current weather in Jacksonville, FL?'
 Result: [Search results...]
 
 Example 2: RAG Query
-Query: 'Tell me about DeepSeek'
+Query: 'Tell me about Reasoning-oriented Reinforcement Learning in simple terms'
 Result: [Answer based on your documents...]
 ```
 

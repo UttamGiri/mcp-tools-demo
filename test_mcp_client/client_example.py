@@ -256,10 +256,10 @@ async def main():
         
         # Example 1: Web search
         print("Example 1: Web Search")
-        print("Query: 'What is Python programming?'")
+        print("Query: 'What is Current weather in Jacksonville, FL?'")
         search_result = await client.call_tool(
             "search_web",
-            {"query": "What is Python programming?"}
+            {"query": "What is Current weather in Jacksonville, FL?"}
         )
         print(f"Result: {search_result[:200]}...")  # Print first 200 chars
         
@@ -267,11 +267,11 @@ async def main():
         
         # Example 2: RAG query (requires documents in data/ directory)
         print("Example 2: RAG Query")
-        print("Query: 'Tell me about DeepSeek'")
+        print("Query: 'Tell me about Reasoning-oriented Reinforcement Learning in simple terms'")
         try:
             rag_result = await client.call_tool(
                 "query_documents",
-                {"query": "Tell me about DeepSeek"}
+                {"query": "Tell me about Reasoning-oriented Reinforcement Learning in simple terms"}
             )
             print(f"Result: {rag_result[:200]}...")  # Print first 200 chars
         except Exception as e:
