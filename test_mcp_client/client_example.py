@@ -273,7 +273,7 @@ async def main():
                 "query_documents",
                 {"query": "Tell me about Reasoning-oriented Reinforcement Learning in simple terms"}
             )
-            print(f"Result: {rag_result[:200]}...")  # Print first 200 chars
+            print(f"Result: {rag_result[:1000]}...")  # Print first 200 chars
         except Exception as e:
             print(f"Error: {e}")
             print("Note: Make sure you have documents in the 'data' directory")
