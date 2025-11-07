@@ -48,17 +48,12 @@ class RAGWorkflow(Workflow):
         # - Word documents (.docx)
         # - And other supported formats
         try:
-            import sys
             doc_list = SimpleDirectoryReader(dir_path).load_data()
             if not doc_list:
-                print(f"Warning: No documents found in {dir_path}", file=sys.stderr)
                 return None
-            print(f"Loaded {len(doc_list)} document(s) from {dir_path}", file=sys.stderr)
             self.index = VectorStoreIndex.from_documents(documents=doc_list)
-            print("Document index created successfully", file=sys.stderr)
             return StopEvent(result=self.index)
         except Exception as e:
-            print(f"Error loading documents: {e}", file=sys.stderr)
             raise
 
     @step
@@ -69,8 +64,6 @@ class RAGWorkflow(Workflow):
         if not user_query:
             return None
         if doc_index is None:
-            import sys
-            print("Document index not available. Please load documents first.", file=sys.stderr)
             return None
         doc_retriever = doc_index.as_retriever(similarity_top_k=2)
         relevant_nodes = await doc_retriever.aretrieve(user_query)
@@ -80,7 +73,7 @@ class RAGWorkflow(Workflow):
     @step
     async def generate_answer(self, ctx: Context, ev: RetrievalResult) -> StopEvent:
         """Create a response based on retrieved context."""
-        response_builder = CompactAndRefine(streaming=True, verbose=True)
+        response_builder = CompactAndRefine(streaming=True, verbose=False)
         # Get query from the event
         user_query = ev.query
         final_response = await response_builder.asynthesize(user_query, nodes=ev.nodes)

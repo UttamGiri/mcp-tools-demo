@@ -14,22 +14,13 @@ DATA_DIR = PROJECT_ROOT / "data"
 env_path = PROJECT_ROOT / ".env"
 load_dotenv(dotenv_path=env_path)
 
-# Debug: Print that we're loading from the right place
-print(f"[DEBUG] Loading .env from: {env_path}", file=sys.stderr)
-print(f"[DEBUG] .env exists: {env_path.exists()}", file=sys.stderr)
-
 mcp = FastMCP('linkup-server')
 
 # Initialize LinkupClient with API key from environment
 linkup_api_key = os.getenv("LINKUP_API_KEY")
-print(f"[DEBUG] LINKUP_API_KEY loaded: {'Yes' if linkup_api_key else 'No'}", file=sys.stderr)
-if linkup_api_key:
-    print(f"[DEBUG] API Key length: {len(linkup_api_key)} characters", file=sys.stderr)
 
 try:
-    # Try different ways to import linkup
     import linkup
-    print(f"[DEBUG] Linkup module imported. Available attributes: {dir(linkup)[:5]}...", file=sys.stderr)
     
     # Try to find the client class
     if hasattr(linkup, 'LinkupClient'):
@@ -44,29 +35,20 @@ try:
             LinkupClient = None
             client = linkup
             LINKUP_AVAILABLE = True
-            print(f"[INFO] Using linkup module directly", file=sys.stderr)
         else:
             raise ImportError("Could not find LinkupClient or search method in linkup package")
     
     if LinkupClient and linkup_api_key and linkup_api_key.strip():
         client = LinkupClient(api_key=linkup_api_key)
         LINKUP_AVAILABLE = True
-        print(f"[INFO] Linkup client initialized successfully", file=sys.stderr)
     elif not LinkupClient:
-        # Already set above
         pass
     else:
         LINKUP_AVAILABLE = False
         client = None
-        print("[WARN] LINKUP_API_KEY not found in .env file", file=sys.stderr)
-except ImportError as e:
+except (ImportError, Exception):
     LINKUP_AVAILABLE = False
     client = None
-    print(f"[WARN] Linkup package not installed: {e}", file=sys.stderr)
-except Exception as e:
-    LINKUP_AVAILABLE = False
-    client = None
-    print(f"[ERROR] Failed to initialize Linkup: {e}", file=sys.stderr)
 
 rag_workflow = RAGWorkflow()
 
@@ -102,25 +84,29 @@ def search_web(query: str) -> str:
 @mcp.tool()
 async def query_documents(query: str) -> str:
     """Answer questions using RAG workflow with documents from the data directory."""
-    workflow_result = await rag_workflow.ask(query)
-    # Get the actual response from workflow result
-    answer = workflow_result.result if hasattr(workflow_result, 'result') else workflow_result
-    # Build complete response from streaming chunks
-    full_answer = ""
-    if hasattr(answer, 'async_response_gen'):
-        async for text_chunk in answer.async_response_gen():
-            full_answer += text_chunk
-    else:
-        # Handle non-streaming responses
-        full_answer = str(answer)
-    return full_answer
+    try:
+        workflow_result = await rag_workflow.ask(query)
+        # Get the actual response from workflow result
+        answer = workflow_result.result if hasattr(workflow_result, 'result') else workflow_result
+        # Build complete response from streaming chunks
+        full_answer = ""
+        if hasattr(answer, 'async_response_gen'):
+            async for text_chunk in answer.async_response_gen():
+                full_answer += text_chunk
+        elif hasattr(answer, 'response'):
+            # Some responses have a 'response' attribute
+            full_answer = str(answer.response)
+        else:
+            # Handle non-streaming responses
+            full_answer = str(answer)
+        
+        if not full_answer or full_answer.strip() == "":
+            return "No answer generated. Please try a different query."
+        return full_answer
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 if __name__ == "__main__":
-    import sys as sys
-    # Print to stderr to avoid interfering with MCP stdio protocol
-    print(f"Loading documents from: {DATA_DIR}", file=sys.stderr)
-    print("Supported formats: PDF, TXT, MD, DOCX, and more...", file=sys.stderr)
     asyncio.run(rag_workflow.load_documents(str(DATA_DIR)))
-    print("MCP server starting...", file=sys.stderr)
     mcp.run(transport="stdio")
 
