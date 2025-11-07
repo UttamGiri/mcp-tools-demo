@@ -35,8 +35,8 @@ htmlcov/
 # Logs
 *.log
 
-# Data directory (optional - uncomment if you don't want to track data)
-# data/
+# Data directory - contains large PDFs and documents
+data/
 
 # OS
 .DS_Store
