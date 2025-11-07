@@ -1,6 +1,6 @@
 import asyncio
 import os
-import sys
+import json
 from pathlib import Path
 from dotenv import load_dotenv
 from mcp_app.document_workflow import RAGWorkflow
@@ -19,36 +19,20 @@ mcp = FastMCP('linkup-server')
 # Initialize LinkupClient with API key from environment
 linkup_api_key = os.getenv("LINKUP_API_KEY")
 
+client = None
+LINKUP_AVAILABLE = False
+
 try:
-    import linkup
-    
-    # Try to find the client class
-    if hasattr(linkup, 'LinkupClient'):
-        LinkupClient = linkup.LinkupClient
-    elif hasattr(linkup, 'Linkup'):
-        LinkupClient = linkup.Linkup
-    elif hasattr(linkup, 'Client'):
-        LinkupClient = linkup.Client
-    else:
-        # Use the module directly if it has a search method
-        if hasattr(linkup, 'search'):
-            LinkupClient = None
-            client = linkup
+    from linkup import LinkupClient
+
+    if linkup_api_key and linkup_api_key.strip():
+        try:
+            client = LinkupClient(api_key=linkup_api_key)
             LINKUP_AVAILABLE = True
-        else:
-            raise ImportError("Could not find LinkupClient or search method in linkup package")
-    
-    if LinkupClient and linkup_api_key and linkup_api_key.strip():
-        client = LinkupClient(api_key=linkup_api_key)
-        LINKUP_AVAILABLE = True
-    elif not LinkupClient:
-        pass
-    else:
-        LINKUP_AVAILABLE = False
-        client = None
-except (ImportError, Exception):
+        except Exception:
+            client = None
+except ImportError:
     LINKUP_AVAILABLE = False
-    client = None
 
 rag_workflow = RAGWorkflow()
 
@@ -61,23 +45,19 @@ def search_web(query: str) -> str:
         response = client.search(
             query=query,
             depth="standard",
-            output_type="sourcedAnswer", 
+            output_type="sourcedAnswer",
             structured_output_schema=None,
         )
-        # Handle different response types
-        if hasattr(response, 'answer'):
-            return response.answer
-        elif hasattr(response, 'text'):
-            return response.text
-        elif isinstance(response, dict):
-            # Extract answer from dict response
-            return response.get('answer', response.get('text', str(response)[:2000]))
-        else:
-            # Truncate very long responses
-            result_str = str(response)
-            if len(result_str) > 5000:
-                return result_str[:5000] + "\n\n[Response truncated due to length]"
-            return result_str
+
+        if isinstance(response, dict):
+            answer = response.get("answer") or response.get("text")
+            if answer:
+                return answer
+            return json.dumps(response)[:5000]
+
+        # Fallback to string representation (truncate if huge)
+        result_str = str(response)
+        return result_str[:5000]
     except Exception as e:
         return f"Error performing web search: {str(e)}"
 
@@ -86,23 +66,22 @@ async def query_documents(query: str) -> str:
     """Answer questions using RAG workflow with documents from the data directory."""
     try:
         workflow_result = await rag_workflow.ask(query)
-        # Get the actual response from workflow result
         answer = workflow_result.result if hasattr(workflow_result, 'result') else workflow_result
+
         # Build complete response from streaming chunks
-        full_answer = ""
         if hasattr(answer, 'async_response_gen'):
+            full_answer = ""
             async for text_chunk in answer.async_response_gen():
                 full_answer += text_chunk
         elif hasattr(answer, 'response'):
-            # Some responses have a 'response' attribute
             full_answer = str(answer.response)
         else:
-            # Handle non-streaming responses
             full_answer = str(answer)
-        
-        if not full_answer or full_answer.strip() == "":
+
+        full_answer = full_answer.strip()
+        if not full_answer:
             return "No answer generated. Please try a different query."
-        return full_answer
+        return full_answer[:5000]
     except Exception as e:
         return f"Error: {str(e)}"
 
