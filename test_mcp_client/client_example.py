@@ -180,7 +180,7 @@ class MCPClient:
         
         # Read response from stdout (should be clean JSON now)
         # Increased timeout for LLM operations which can take longer
-        timeout = 60.0 if method == "tools/call" else 10.0
+        timeout = 180.0 if method == "tools/call" else 10.0
         try:
             response_line = await asyncio.wait_for(
                 self.process.stdout.readline(), 
@@ -256,7 +256,7 @@ async def main():
         
         # Example 1: Web search
         print("Example 1: Web Search")
-        print("Query: 'What is Current weather in Jacksonville, FL?'")
+        print("What is Current weather in Jacksonville, FL?'")
         search_result = await client.call_tool(
             "search_web",
             {"query": "What is Current weather in Jacksonville, FL?"}
