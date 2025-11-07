@@ -41,31 +41,45 @@ class MCPClient:
         server_ready = False
         
         async def read_stderr_until_ready():
-            """Read stderr messages until we see 'MCP server starting'"""
+            """Read stderr messages and wait for server to be ready"""
             nonlocal server_ready
+            start_time = asyncio.get_event_loop().time()
+            max_wait = 30.0  # Wait up to 30 seconds
+            
             while self.process and self.process.stderr:
                 try:
-                    line = await asyncio.wait_for(self.process.stderr.readline(), timeout=60.0)
+                    line = await asyncio.wait_for(self.process.stderr.readline(), timeout=1.0)
                     if line:
                         line_text = line.decode().strip()
-                        print(f"[Server]: {line_text}")
-                        if "MCP server starting" in line_text:
+                        if line_text:  # Only print non-empty lines
+                            print(f"[Server]: {line_text}")
+                        
+                        # Look for indicators that loading is complete
+                        if "prompt is loaded" in line_text or "index created" in line_text:
+                            # Documents are loaded, server should be ready soon
+                            await asyncio.sleep(2)
                             server_ready = True
-                            # Keep reading stderr in background
                             asyncio.create_task(self._continue_reading_stderr())
                             break
                 except asyncio.TimeoutError:
-                    break
+                    # Check if we've waited long enough
+                    if asyncio.get_event_loop().time() - start_time > max_wait:
+                        # Assume server is ready
+                        server_ready = True
+                        asyncio.create_task(self._continue_reading_stderr())
+                        break
                 except:
                     break
         
-        # Wait for "MCP server starting" message
+        # Wait for server to be ready
         await read_stderr_until_ready()
         
         if not server_ready:
-            raise RuntimeError("Server failed to start - did not see 'MCP server starting' message")
+            # Try anyway - server might be ready
+            server_ready = True
+            print("[WARN] Could not confirm server ready, attempting connection anyway...")
         
-        # Give it a moment after the ready message
+        # Give it a moment
         await asyncio.sleep(1)
         
         # Perform MCP initialization handshake
