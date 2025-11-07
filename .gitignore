@@ -35,8 +35,12 @@ htmlcov/
 # Logs
 *.log
 
-# Data directory - contains large PDFs and documents
-data/
+# Data directory - ignore large files but keep folder structure
+data/*.pdf
+data/*.txt
+data/*.docx
+data/*.md
+!data/README.md
 
 # OS
 .DS_Store
