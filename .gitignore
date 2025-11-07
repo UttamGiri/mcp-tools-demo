@@ -35,12 +35,8 @@ htmlcov/
 # Logs
 *.log
 
-# Data directory - ignore large files but keep folder structure
-data/*.pdf
-data/*.txt
-data/*.docx
-data/*.md
-!data/README.md
+# Data directory - keep folder and files for demo
+# Note: Large files may cause git push issues
 
 # OS
 .DS_Store
